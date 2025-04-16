@@ -1,0 +1,108 @@
+import pygame
+import random
+
+pygame.init()
+
+# Set up the screen
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Space Game")
+
+# Player setup
+player_width = 50
+player_height = 50
+player_color = (0, 255, 0)
+player_rect = pygame.Rect(375, 500, player_width, player_height)
+
+# Bullet setup
+bullet_width = 5
+bullet_height = 10
+bullet_color = (255, 255, 0)
+bullets = []
+
+# Enemy setup
+enemy_width = 50
+enemy_height = 50
+enemy_color = (255, 0, 0)
+enemies = []
+
+clock = pygame.time.Clock()
+
+def spawn_enemy():
+    """Spawns a new enemy at a random position above the screen."""
+    enemy_rect = pygame.Rect(random.randint(0, 750), random.randint(-100, -40), enemy_width, enemy_height)
+    enemies.append(enemy_rect)
+
+def move_enemies():
+    """Move the enemies down the screen."""
+    for e in enemies[:]:
+        e.y += 5
+        if e.y > 600:  # Remove enemy if it moves off the screen
+            enemies.remove(e)
+
+def move_bullets():
+    """Move bullets upwards."""
+    for b in bullets[:]:
+        b.y -= 10
+        if b.y < 0:  # Remove bullet if it moves off the screen
+            bullets.remove(b)
+
+def check_collisions():
+    """Check for collisions between bullets and enemies."""
+    global enemies, bullets
+    for b in bullets[:]:
+        for e in enemies[:]:
+            if b.colliderect(e):
+                bullets.remove(b)
+                enemies.remove(e)
+                break  # Bullet can only destroy one enemy at a time.
+
+def game_over():
+    """Display the 'Game Over' message."""
+    font = pygame.font.SysFont(None, 55)
+    text = font.render("Game Over!", True, (255, 0, 0))
+    screen.blit(text, (320, 250))
+    pygame.display.flip()  # Refresh the screen
+    pygame.time.delay(2000)  # Wait for 2 seconds before closing
+
+running = True
+while running:
+    screen.fill((0, 0, 0))  # Fill the screen with black
+    
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    keys = pygame.key.get_pressed()
+    if (keys[pygame.K_LEFT] or keys[pygame.K_a]) and player_rect.left > 0:
+        player_rect.x -= 5
+    if (keys[pygame.K_RIGHT] or keys[pygame.K_d]) and player_rect.right < 800:
+        player_rect.x += 5
+    if keys[pygame.K_SPACE]:
+        bullet_rect = pygame.Rect(player_rect.centerx - bullet_width // 2, player_rect.top, bullet_width, bullet_height)
+        bullets.append(bullet_rect)
+
+    move_bullets()
+    move_enemies()
+    check_collisions()
+
+    if random.random() < 0.02:
+        spawn_enemy()
+
+    # Drawing
+    pygame.draw.rect(screen, player_color, player_rect)
+    for b in bullets:
+        pygame.draw.rect(screen, bullet_color, b)
+    for e in enemies:
+        pygame.draw.rect(screen, enemy_color, e)
+
+    # Check for collision between the player and any enemy
+    for e in enemies:
+        if player_rect.colliderect(e):
+            game_over()  # End the game if player collides with an enemy
+            running = False  # Stop the game loop after game over
+
+    pygame.display.flip()  # Flip to update the display
+    clock.tick(60)  # Limit frame rate to 60 FPS
+
+pygame.quit()  # Properly quit pygame when the loop ends
